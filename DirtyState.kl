@@ -1,0 +1,182 @@
+require cycleCheck;
+
+
+//===================================================================
+//===================================================================
+///Object for dirty mechanism.
+object DirtyState : CycleCheckItem
+{
+	///Dirty state of this object.
+	Boolean _isDirty;
+
+	//Ref <> is added to avoid bidirectional reference, considering a use case where a Dirty state object is kept as a member of an DirtyManagedData.
+	///Data which dirty state is managed by this object.
+	Ref<DirtyManagedData> _data;
+
+	///DirtyStates which this state depends on.
+	Ref<DirtyState> _statesInput[];
+
+	///DirtyStates which depends on this state.
+	Ref<DirtyState> _statesOutput[];
+};
+
+///Constructor. Make sure to keep the data exist while this object is being used.
+function DirtyState(DirtyManagedData data)
+{
+	this._isDirty = false;
+	this._data = data;
+}
+
+///Remove all input/output dependencies.
+function DirtyState.removeAllDependencies!()
+{
+	for (Integer i = 0; i < this._statesInput.size(); ++i)
+	{
+		DirtyState s = this._statesInput[i];
+		this.removeInput(s);
+	}
+
+	for (Integer i = 0; i < this._statesOutput.size(); ++i)
+	{
+		DirtyState t = this;
+		this._statesOutput[i].removeInput(t);
+	}
+}
+
+/// \Internal CycleCheckItem interface implementation.
+function CycleCheckItem[] DirtyState.getInputItems()
+{
+	CycleCheckItem items[];
+	for (Integer i = 0; i < this._statesInput.size(); ++ i)
+	{
+		items.push(this._statesInput[i]);
+	}
+	return items;
+}
+
+///Set the flag of this object, and objects that depends on this.
+function DirtyState._setDirty!()
+{
+	if (this.isDirty())
+	{
+		return;
+	}
+
+	this._isDirty = true;
+
+	for (Integer i = 0; i < this._statesOutput.size(); ++i)
+	{
+		this._statesOutput[i]._setDirty();
+	}
+}
+
+///Returns true if dirty.
+inline function Boolean DirtyState.isDirty()
+{
+	return this._isDirty;
+}
+
+/// \internal
+function DirtyState._deleteStateFromList(io Ref<DirtyState> list[], DirtyState state)
+{
+	//Search the state from the list.
+	Integer i;
+	for (i = 0; i < list.size(); ++ i)
+	{
+		if (list[i].hash() == state.hash())
+		{
+			break;
+		}
+	}
+
+	if (i == list.size())
+	{
+		return; //Not found.
+	}
+
+	//Delete the state found and shift the states after that.
+	++i;
+	for (; i < list.size(); ++i)
+	{
+		list[i - 1] = list[i];
+	}
+	list.pop();
+}
+
+///Add a state that this state depends on. Returns false if cycle check fails. Do nothing and returns true if state is null.
+function Boolean DirtyState.addInput!(io DirtyState state)
+{
+	if ( ! state)
+	{
+		return true;
+	}
+
+	Ref<DirtyState> stateRef = state;
+	this._statesInput.push(stateRef);
+	state._statesOutput.push(this);
+
+	//Cycle check to avoid infinite execution loop. This includes state.hash == this.hash check.
+	if ( ! cycleCheck(this))
+	{
+		this._deleteStateFromList(this._statesInput, state);
+		this._deleteStateFromList(state._statesOutput, this);
+		return false;
+	}
+
+	//Now new dependency has been added. We need to set dirty to urge state update considering the new input.
+	this._setDirty();
+
+	return true;
+}
+
+///Remove a state that this state depends on. Do nothing and returns true if state is null or not an input.
+function DirtyState.removeInput!(io DirtyState state)
+{
+	Integer i;
+	for (i = 0; i < this._statesInput.size(); ++ i)
+	{
+		if (this._statesInput[i].hash() == state.hash())
+		{
+			break;
+		}
+	}
+
+	if (i == this._statesInput.size())
+	{
+		//state not found.
+		return;
+	}
+
+	//Make sure to reflect the change of the input data which dependency to be removed beforehand.
+	this.update();
+
+	this._deleteStateFromList(this._statesInput, state);
+	this._deleteStateFromList(state._statesOutput, this);
+}
+
+///Update the data (i.e. updateMe!() method is called) which dirty state is managed by this object and reset the dirty.
+/// If this data has dirty inputs, their update!() are also called recursively.
+function DirtyState.update!()
+{
+	if ( ! this.isDirty())
+	{
+		return;
+	}
+
+	//Recursively update every DirtyStates this object depends on.
+	for (Integer i = 0; i < this._statesInput.size(); ++ i)
+	{
+		this._statesInput[i].update();
+	}
+
+	//Update the data which dirty state this object manages.
+	if (this._data)
+	{
+		this._data.updateMe();
+	}
+
+	//Reset the dirty of this object (because updated), and set the dirty of outputs (because this object is one of ther inputs).
+	this._isDirty = false;
+	this._setDirty();
+	this._isDirty = false;
+}

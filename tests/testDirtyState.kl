@@ -1,0 +1,127 @@
+require DirtyState;
+
+//===================================================================
+//===================================================================
+object DummyData : DirtyManagedData{};
+function DummyData.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+object TestObj
+{
+	DummyData dd0, dd1, dd2, dd3, dd4;
+	DirtyState state0, state1, state2, state3;
+};
+
+function TestObj()
+{
+	this.dd0 = DummyData();
+	this.dd1 = DummyData();
+	this.dd2 = DummyData();
+	this.dd3 = DummyData();
+	this.state0 = DirtyState(this.dd0);
+	this.state1 = DirtyState(this.dd1);
+	this.state2 = DirtyState(this.dd2);
+	this.state3 = DirtyState(this.dd3);
+	this.state3.addInput(this.state2);
+	this.state3.addInput(this.state1);
+	this.state1.addInput(this.state0);
+}
+
+function TestObj.setCleanAll!()
+{
+	this.state0.update();
+	this.state1.update();
+	this.state2.update();
+	this.state3.update();
+}
+
+
+
+//===================================================================
+//===================================================================
+function Boolean testCleanInitialize()
+{
+	TestObj to();
+	return ! to.state0.isDirty();
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testDirtyAfterInputAdded()
+{
+	TestObj to();
+	return to.state3.isDirty();
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testCycleCheck()
+{
+	TestObj to();
+	return ! to.state0.addInput(to.state3);
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testDirtyPropagation()
+{
+	TestObj to();
+	to.setCleanAll();
+	to.state0._setDirty();
+	return to.state0.isDirty() && to.state1.isDirty() && ( ! to.state2.isDirty()) && to.state3.isDirty();
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testUpdate()
+{
+	TestObj to();
+	to.setCleanAll();
+	to.state0._setDirty();
+	to.state3.update();
+	return ( ! to.state0.isDirty()) && ( ! to.state1.isDirty()) && ( ! to.state2.isDirty()) && ( ! to.state3.isDirty());
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testUpdateMiddle()
+{
+	TestObj to();
+	to.setCleanAll();
+	to.state0._setDirty();
+	to.state1.update();
+	return ( ! to.state0.isDirty()) && ( ! to.state1.isDirty()) && ( ! to.state2.isDirty()) && to.state3.isDirty();
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testRemoveAllDependencies()
+{
+	TestObj to();
+	to.setCleanAll();
+	to.state1.removeAllDependencies();
+	to.state0._setDirty();
+	return to.state0.isDirty() && ( ! to.state2.isDirty()) && ( ! to.state3.isDirty());
+}
+
+
+//===================================================================
+//===================================================================
+operator entry()
+{
+	report(testCleanInitialize());
+	report(testDirtyAfterInputAdded());
+	report(testCycleCheck());
+	report(testDirtyPropagation());
+	report(testUpdate());
+	report(testUpdateMiddle());
+	report(testRemoveAllDependencies());
+}

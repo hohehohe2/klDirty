@@ -1,0 +1,101 @@
+require DirtyState;
+
+
+//===================================================================
+//===================================================================
+///Test object. You need to subclass one of DirtyManagedData*, implement updateMe!(), and set dependencies using addInput!().
+object MyData : DirtyManagedDataInteger
+{
+	MyData inputA;
+	MyData inputB;
+};
+
+function MyData(Integer value)
+{
+	this.value = value;
+}
+
+function MyData.setInputA!(io MyData data)
+{
+	this.removeInput(this.inputA);
+	this.addInput(data);
+	this.inputA = data;
+}
+
+function MyData.setInputB!(io MyData data)
+{
+	this.removeInput(this.inputB);
+	this.addInput(data);
+	this.inputB = data;
+}
+
+//this.value <= this.inputA.value + this.inputB.value
+function MyData.updateMe!()
+{
+	this.value = 0;
+	if (this.inputA)
+	{
+		this.value += this.inputA.value;
+	}
+	if (this.inputB)
+	{
+		this.value += this.inputB.value;
+	}
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testData()
+{
+	MyData data0(10), data1(20), data2(30), data3(0);
+	data3.setInputA(data2);
+	data3.setInputB(data1);
+	data1.setInputA(data0);
+	data0.value = 15;
+	data3.update();
+	return data0.value == 15 && data1.value == 15 && data2.value == 30 && data3.value == 45;
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testDataUpdate()
+{
+	MyData data0(10), data1(20), data2(30), data3(0);
+	data3.setInputA(data2);
+	data3.setInputB(data1);
+	data1.setInputA(data0);
+	data0.value = 15;
+	data3.update(); //Mark every data clean.
+	data0.value = 20;
+	data0.update(); //update() used as setDirty. 
+	data3.update(); //Reevaluate.
+	return data0.value == 20 && data1.value == 15 && data2.value == 30 && data3.value == 45;
+}
+
+
+//===================================================================
+//===================================================================
+function Boolean testDataDestructor()
+{
+	MyData data0(10), data1(20), data2(30), data3(0);
+	data3.setInputA(data2);
+	data3.setInputB(data1);
+	data1.setInputA(data0);
+	data1.removeAllDependencies(); //data0.value -> data1.value copy.
+	data0.value = 15;
+	data3.update();
+
+	return data0.value == 15 && data1.value == 10 && data2.value == 30 && data3.value == 40;
+}
+
+
+//===================================================================
+//===================================================================
+operator entry()
+{
+	report(testData());
+	report(testDataUpdate());
+	report(testDataDestructor());
+}

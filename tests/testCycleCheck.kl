@@ -1,0 +1,61 @@
+require cycleCheck;
+
+object Obj : CycleCheckItem
+{
+	Boolean inputs[Obj];
+};
+
+function CycleCheckItem[] Obj.getInputItems()
+{
+	CycleCheckItem items[];
+	for (obj in this.inputs)
+	{
+		items.push(obj);
+	}
+	return items;
+}
+
+function Boolean testNonCycle()
+{
+	Obj o0();
+	Obj o1();
+	o1.inputs[o0] = true;
+	return cycleCheck(o0);
+}
+
+function Boolean testCycle()
+{
+	Obj o0();
+	Obj o1();
+	o1.inputs[o0] = true;
+	o0.inputs[o1] = true;
+	return (! cycleCheck(o0)) && (! cycleCheck(o1));
+}
+
+function Boolean testCycleThis()
+{
+	Obj o();
+	o.inputs[o] = true;
+	return ! cycleCheck(o);
+}
+
+function Boolean testNonCycleDiamond()
+{
+	Obj o0();
+	Obj o1();
+	Obj o2();
+	Obj o3();
+	o3.inputs[o2] = true;
+	o3.inputs[o1] = true;
+	o2.inputs[o0] = true;
+	o1.inputs[o0] = true;
+	return cycleCheck(o3);
+}
+
+operator entry()
+{
+	report(testNonCycle());
+	report(testCycle());
+	report(testCycleThis());
+	report(testNonCycleDiamond());
+}

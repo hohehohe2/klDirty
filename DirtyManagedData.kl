@@ -1,0 +1,126 @@
+object DirtyState;
+
+
+//===================================================================
+//===================================================================
+///Interface representing some data which dirty is managed by DirtyState object.
+interface DirtyManagedData
+{
+	///Implement this using inputs on which this object is dependent. This method is called inside DirtyState.update() while the state is dirty.
+	updateMe!();
+};
+
+
+//===================================================================
+//===================================================================
+///Base object representing some data which dirty is managed by DirtyState object.
+object DirtyManagedDataBase : DirtyManagedData
+{
+	///DirtyState object that manages this object's dirty.
+	DirtyState state;
+};
+
+function DirtyManagedDataBase()
+{
+	this.state = DirtyState(this);
+}
+
+inline function DirtyManagedDataBase.removeAllDependencies!()
+{
+	this.state.removeAllDependencies();
+}
+
+///Update the data (i.e. updateMe!() method is called) and reset the dirty.
+/// If this data has dirty inputs, their update!() are also called recursively.
+inline function DirtyManagedDataBase.update!()
+{
+	this.state.update();
+}
+
+///Returns true if dirty.
+inline function Boolean DirtyManagedDataBase.isDirty()
+{
+	return this.state.isDirty();
+}
+
+///Add a data that this data depends on. Returns false if cycle check fails. Do nothing and returns true if data is null.
+inline function Boolean DirtyManagedDataBase.addInput!(io DirtyManagedDataBase data)
+{
+	if (data)
+	{
+		return this.state.addInput(data.state);
+	}
+	return true;
+}
+
+///Remove a data that this data depends on. Do nothing if data is null.
+inline function DirtyManagedDataBase.removeInput!(io DirtyManagedDataBase data)
+{
+	if (data)
+	{
+		this.state.removeInput(data.state);
+	}
+}
+
+///Override this method at a subclass.
+function DirtyManagedDataBase.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+///Integer data which dirty is managed by DirtyState object.
+object DirtyManagedDataInteger : DirtyManagedDataBase
+{
+	Integer value;
+};
+
+///Override this method at a subclass.
+function DirtyManagedDataInteger.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+///String data which dirty is managed by DirtyState object.
+object DirtyManagedDataString : DirtyManagedDataBase
+{
+	String value;
+};
+
+///Override this method at a subclass.
+function DirtyManagedDataString.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+///Boolean data which dirty is managed by DirtyState object.
+object DirtyManagedDataBoolean : DirtyManagedDataBase
+{
+	Boolean value;
+};
+
+///Override this method at a subclass.
+function DirtyManagedDataBoolean.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+///Float32 data which dirty is managed by DirtyState object.
+object DirtyManagedDataFloat32 : DirtyManagedDataBase
+{
+	Float32 value;
+};
+
+///Override this method at a subclass.
+function DirtyManagedDataFloat32.updateMe!(){}
+
+
+//===================================================================
+//===================================================================
+///Float64 data which dirty is managed by DirtyState object.
+object DirtyManagedDataFloat64 : DirtyManagedDataBase
+{
+	Float64 value;
+};
+
+///Override this method at a subclass.
+function DirtyManagedDataFloat64.updateMe!(){}

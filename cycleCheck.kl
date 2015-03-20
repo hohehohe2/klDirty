@@ -1,0 +1,47 @@
+interface CycleCheckItem;
+
+
+//===================================================================
+//===================================================================
+///Dictionary to be used as a type of set of CycleCheckItem interface.
+alias Boolean CycleCheckItemSet[CycleCheckItem];
+
+
+//===================================================================
+//===================================================================
+///Have this interface to let your object being used with cycleCheck().
+interface CycleCheckItem
+{
+	CycleCheckItem[] getInputItems();
+};
+
+/// \internal
+function Boolean _cycleCheckRecurs(CycleCheckItem item, io CycleCheckItemSet items)
+{
+	if (items.has(item))
+	{
+		return false;
+	}
+
+	items[item] = true;
+
+	CycleCheckItem inputs[] = item.getInputItems();
+	for (Integer i = 0; i < inputs.size(); ++i)
+	{
+		if ( ! _cycleCheckRecurs(inputs[i], items))
+		{
+			return false;
+		}
+	}
+
+	items.delete(item);
+
+	return true;
+}
+
+///Test cycle check on a given item.
+function Boolean cycleCheck(CycleCheckItem item)
+{
+	CycleCheckItemSet items; //Set of CycleCheckItem objects we will have walked.
+	return _cycleCheckRecurs(item, items);
+}
