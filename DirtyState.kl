@@ -148,12 +148,13 @@ function DirtyState.removeInput!(io DirtyState state)
 		return;
 	}
 
-	//Make sure to reflect the change of the input data which dependency to be removed beforehand.
+	//Make sure to update the data while the input is still connected.
 	this.update();
 
 	this._deleteStateFromList(this._statesInput, state);
 	this._deleteStateFromList(state._statesOutput, this);
 
+	//Call the user callback for cleanup.
 	this._data.onInputRemoved(state._data);
 }
 
