@@ -4,6 +4,7 @@ require DirtyState;
 //===================================================================
 object DummyData : DirtyManagedData{};
 function DummyData.updateMe!(){}
+function DummyData.onInputRemoved!(Ref<DirtyManagedData> inputData){}
 
 
 //===================================================================

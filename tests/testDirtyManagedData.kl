@@ -3,7 +3,9 @@ require DirtyState;
 
 //===================================================================
 //===================================================================
-///Test object. You need to subclass one of DirtyManagedData*, implement updateMe!(), and set dependencies using addInput!().
+///Test object. It takes up to two inputs (inputA and inputB) and calculates the sum of them to this.value.
+///You need to subclass one of DirtyManagedData*, implement updateMe!(), and set dependencies using addInput!().
+/// Additionally you can override onInputRemoved!() for some cleanup code.
 object MyData : DirtyManagedDataInteger
 {
 	MyData inputA;
@@ -15,10 +17,10 @@ function MyData(Integer value)
 	this.value = value;
 }
 
-function MyData.setInputA!(io MyData data)
+function MyData.setInputA!(io MyData data) //data can be null.
 {
-	this.removeInput(this.inputA);
-	this.addInput(data);
+	this.removeInput(this.inputA); //Do nothing if this.inputA == null.
+	this.addInput(data); //Do nothing if data == null.
 	this.inputA = data;
 }
 
@@ -43,10 +45,23 @@ function MyData.updateMe!()
 	}
 }
 
+function MyData.onInputRemoved!(Ref<DirtyManagedData> inputData)
+{
+	if (this.inputA == inputData)
+	{
+		this.inputA = null;
+	}
+	else if (this.inputB == inputData)
+	{
+		this.inputB = null;
+	}
+}
+
 
 //===================================================================
 //===================================================================
-function Boolean testData()
+///Basic usage. Set dependency and update. updateMe!() is called as a lazy-evaluation manner.
+function Boolean testDependency()
 {
 	MyData data0(10), data1(20), data2(30), data3(0);
 	data3.setInputA(data2);
@@ -60,7 +75,9 @@ function Boolean testData()
 
 //===================================================================
 //===================================================================
-function Boolean testDataUpdate()
+///When you change a value in one of the inputs, you need to call update. It will set every data state
+/// that depends on it as dirty.
+function Boolean testSetDirty()
 {
 	MyData data0(10), data1(20), data2(30), data3(0);
 	data3.setInputA(data2);
@@ -77,17 +94,21 @@ function Boolean testDataUpdate()
 
 //===================================================================
 //===================================================================
-function Boolean testDataDestructor()
+///removeAllDependencies isolate a data from others. You can use the method when you no longer need the data.
+function Boolean testRemoveAllDependencies()
 {
 	MyData data0(10), data1(20), data2(30), data3(0);
 	data3.setInputA(data2);
 	data3.setInputB(data1);
 	data1.setInputA(data0);
-	data1.removeAllDependencies(); //data0.value -> data1.value copy.
+	//Now data3-data2
+	//         \data1-data0
+	data1.removeAllDependencies(); //data0.value -> data1.value copy. data3 and data1's onInputRemoved!() are called.
+	//Now data3-data2 dependency only.
 	data0.value = 15;
 	data3.update();
 
-	return data0.value == 15 && data1.value == 10 && data2.value == 30 && data3.value == 40;
+	return data0.value == 15 && data1.value == 10 && data2.value == 30 && data3.value == 40 && data3.inputB == null && data1.inputA == null;
 }
 
 
@@ -95,7 +116,7 @@ function Boolean testDataDestructor()
 //===================================================================
 operator entry()
 {
-	report(testData());
-	report(testDataUpdate());
-	report(testDataDestructor());
+	report(testDependency());
+	report(testSetDirty());
+	report(testRemoveAllDependencies());
 }

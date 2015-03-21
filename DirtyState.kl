@@ -118,6 +118,7 @@ function Boolean DirtyState.addInput!(io DirtyState state)
 	//Cycle check to avoid infinite execution loop. This includes state.hash == this.hash check.
 	if ( ! cycleCheck(this))
 	{
+		//Rollback.
 		this._deleteStateFromList(this._statesInput, state);
 		this._deleteStateFromList(state._statesOutput, this);
 		return false;
@@ -152,6 +153,8 @@ function DirtyState.removeInput!(io DirtyState state)
 
 	this._deleteStateFromList(this._statesInput, state);
 	this._deleteStateFromList(state._statesOutput, this);
+
+	this._data.onInputRemoved(state._data);
 }
 
 ///Update the data (i.e. updateMe!() method is called) which dirty state is managed by this object and reset the dirty.
