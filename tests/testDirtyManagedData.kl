@@ -47,6 +47,10 @@ function MyData.updateMe!()
 
 function MyData.onInputRemoved!(Ref<DirtyManagedData> inputData)
 {
+	//This method is called when an input dependency is removed, either by
+	//calling this method's removeInput() or the input's removeAllDependencies().
+	//Usually when an input dependency is remove, this object will no longer
+	//use the input data, so it should not keep the reference of the input.
 	if (this.inputA == inputData)
 	{
 		this.inputA = null;
