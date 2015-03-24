@@ -30,16 +30,16 @@ function DirtyState(DirtyManagedData data)
 ///Remove all input/output dependencies.
 function DirtyState.removeAllDependencies!()
 {
-	for (Integer i = 0; i < this._statesInput.size(); ++i)
+	while(this._statesInput.size())
 	{
-		DirtyState s = this._statesInput[i];
+		DirtyState s = this._statesInput[0];
 		this.removeInput(s);
 	}
 
-	for (Integer i = 0; i < this._statesOutput.size(); ++i)
+	while(this._statesOutput.size())
 	{
 		DirtyState t = this;
-		this._statesOutput[i].removeInput(t);
+		this._statesOutput[0].removeInput(t);
 	}
 }
 
