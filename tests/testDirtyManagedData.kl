@@ -98,7 +98,9 @@ function Boolean testSetDirty()
 
 //===================================================================
 //===================================================================
-///removeAllDependencies isolate a data from others. You can use the method when you no longer need the data.
+///removeAllDependencies() isolate a data from others. You can use the method when you no longer need the data.
+///Currently you need to call this manually when you no longer need a data. For some implementation reason it is
+///not done in the destructor automatically (like Shake SDK).
 function Boolean testRemoveAllDependencies()
 {
 	MyData data0(10), data1(20), data2(30), data3(0);
